@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.newhiber.newhiber.tools.layout.PercentRelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.newhiber.newhiber.widget.PermisWidget
+        android:id="@+id/wd_permiss"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</com.newhiber.newhiber.tools.layout.PercentRelativeLayout>
