@@ -34,7 +34,9 @@ repositories {
 
 dependencies {
 
+    //noinspection GradleDependency
     api 'androidx.appcompat:appcompat:1.4.2'
+    //noinspection GradleDependency
     api 'com.google.android.material:material:1.6.1'
     api 'androidx.constraintlayout:constraintlayout:2.1.4'
     // eventbus
@@ -43,7 +45,7 @@ dependencies {
     api 'com.jakewharton:butterknife:10.2.3'
     annotationProcessor 'com.jakewharton:butterknife-compiler:10.2.3'
     // lint检查
-    api(name: 'ma_lint6', ext: 'aar')
+    api(name: 'lintcheck_34', ext: 'aar')
     // fastjson
     api 'com.alibaba:fastjson:1.2.76'
 }
