@@ -65,7 +65,6 @@ import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import butterknife.ButterKnife;
 
 /*
  * Created by qianli.ma on 2018/6/20 0020.
@@ -227,8 +226,6 @@ public abstract class RootMAActivity extends FragmentActivity {
 
                     // 5.填充视图
                     setContentView(getHiberView(layoutId, gradientBean));
-                    // 6.绑定butterknife
-                    ButterKnife.bind(this);
                     // 8.处理从其他组件传递过来的数据
                     handleIntentExtra(getIntent());
                     // 9.视图填充完毕

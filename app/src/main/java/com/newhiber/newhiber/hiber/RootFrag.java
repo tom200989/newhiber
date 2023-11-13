@@ -49,8 +49,6 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import butterknife.ButterKnife;
-import butterknife.Unbinder;
 
 /**
  * Created by qianli.ma on 2018/7/23 0023.
@@ -77,7 +75,6 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
 
     private static final String TAG = "RootFrag";
     public FragmentActivity activity;
-    private Unbinder unbinder;
     private View inflateView;
     private int layoutId;
     protected static String whichFragmentStart;// 由哪个页面跳转过来
@@ -123,8 +120,6 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
         layoutId = onInflateLayout();
         // 2.填充视图
         inflateView = View.inflate(activity, layoutId, null);
-        // 3.绑定butterknife
-        unbinder = ButterKnife.bind(this, inflateView);
         // 4.加载完视图后的操作--> 由子类重写
         initViewFinish(inflateView);
         // 5.外部定义了 [初始化申请超管权限]

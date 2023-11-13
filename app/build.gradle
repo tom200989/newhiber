@@ -1,18 +1,27 @@
-
 plugins {
-    id('com.android.library')
-    // id('com.android.application')
+    id 'com.android.library'
+    // id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-android-extensions'
 }
 
 android {
-    compileSdk 34
+    namespace 'com.newhiber.newhiber'
 
+    // 使用分包配置
     defaultConfig {
-        // applicationId "com.newhiber.newhiber"
-        minSdk 21
-        targetSdk 34
+        ndkVersion '19.2.5345600'
+        minSdkVersion 21
+        targetSdkVersion 34
+        compileSdk 34
         versionCode 1
         versionName "1.0"
+    }
+
+    // 使用lamda表达式
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     buildTypes {
@@ -21,31 +30,32 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+    kotlinOptions {
+        jvmTarget = '11'
     }
+
 }
+
 repositories {
     flatDir {
         dirs 'libs'
+        // dirs project(':$如果引用了其他模块的aar, 请在此处添加$').file('libs')
     }
 }
 
 dependencies {
 
-    //noinspection GradleDependency
-    api 'androidx.appcompat:appcompat:1.4.2'
-    //noinspection GradleDependency
-    api 'com.google.android.material:material:1.6.1'
+    api 'androidx.appcompat:appcompat:1.6.1'
+    api 'com.google.android.material:material:1.10.0'
     api 'androidx.constraintlayout:constraintlayout:2.1.4'
     // eventbus
     api("org.greenrobot:eventbus:3.3.1")
     // butterknife (如版本变动, 请全局搜索 "butterknife 10.2.3")
-    api 'com.jakewharton:butterknife:10.2.3'
-    annotationProcessor 'com.jakewharton:butterknife-compiler:10.2.3'
+    // api 'com.jakewharton:butterknife:10.2.3'
+    // annotationProcessor 'com.jakewharton:butterknife-compiler:10.2.3'
     // lint检查
-    api(name: 'lintcheck_34', ext: 'aar')
+    api(group:'com.newhiber.newhiber', name: 'check34', ext: 'aar', version:'1.0.0')
     // fastjson
     api 'com.alibaba:fastjson:1.2.76'
+
 }
