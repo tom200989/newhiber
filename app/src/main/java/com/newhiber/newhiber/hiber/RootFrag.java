@@ -11,6 +11,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 
 import com.newhiber.newhiber.R;
 import com.newhiber.newhiber.bean.PermissBean;
@@ -103,6 +104,8 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      * Eventbus 数据回调监听器集合
      */
     protected List<RootEventListener> eventListeners = new ArrayList<>();
+
+    protected WindowInsets windowInsets;// 视图参数对象
 
 
     @Override
@@ -687,6 +690,24 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      */
     public boolean isReloadData() {
         return true;
+    }
+
+    /**
+     * 保存视图参数
+     */
+    public void saveWindowInsets() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            windowInsets = activity.getWindow().getDecorView().getRootWindowInsets();
+        }
+    }
+
+    /**
+     * 恢复视图参数
+     */
+    public void restoreWindowInsets() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            activity.getWindow().getDecorView().dispatchApplyWindowInsets(windowInsets);
+        }
     }
 
     /**
