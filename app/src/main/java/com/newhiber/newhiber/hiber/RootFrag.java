@@ -705,8 +705,10 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      * 恢复视图参数
      */
     public void restoreWindowInsets() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            activity.getWindow().getDecorView().dispatchApplyWindowInsets(windowInsets);
+        if (windowInsets != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                activity.getWindow().getDecorView().dispatchApplyWindowInsets(windowInsets);
+            }
         }
     }
 
