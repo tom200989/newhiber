@@ -686,10 +686,10 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     /**
      * 是否在页面恢复时重新拉取数据
      *
-     * @return true:默认(T:会触发eventbus注销并在下次重新注册, 间接触发onNexts()的重复执行)
+     * @return false:默认(T:会触发eventbus注销并在下次重新注册, 间接触发onNexts()的重复执行)
      */
     public boolean isReloadData() {
-        return true;
+        return false;
     }
 
     /**
