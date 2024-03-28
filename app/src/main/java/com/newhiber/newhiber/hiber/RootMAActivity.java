@@ -1,5 +1,6 @@
 package com.newhiber.newhiber.hiber;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ComponentName;
@@ -14,13 +15,17 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
+import android.provider.Settings;
 import android.text.TextUtils;
+import android.util.ArrayMap;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,11 +62,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.FloatRange;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.StringRes;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -157,7 +167,7 @@ public abstract class RootMAActivity extends FragmentActivity {
     /**
      * 存储「frag绝对路径, frag字节码」
      */
-    private HashMap<String, Class> classFragMap = new HashMap<>();
+    private final HashMap<String, Class> classFragMap = new HashMap<>();
 
     /**
      * 通过extra方式需要接收的信标符号
@@ -184,10 +194,252 @@ public abstract class RootMAActivity extends FragmentActivity {
      */
     protected Handler handler = new Handler();
 
-    @Override
+    /**
+     * 2024新权限用法: 用于装载需要申请的权限(由外部传入)
+     */
+    protected String[] needPermissions = {};
+
+    /**
+     * 2024新权限用法: 申请权限失败后的回调接口
+     */
+    public interface PermissionDeniedAction {
+        void onDenied(List<String> deniedPermissions);
+    }
+
+    /**
+     * 2024新权限用法: 申请权限失败后的回调对象
+     */
+    protected PermissionDeniedAction deniedAction;
+
+
+    /**
+     * 2024新权限用法: 全部权限通过后的回调
+     */
+    protected Runnable allPassRunable = null;
+
+    /**
+     * 2024新权限用法: 用于装载需要申请的权限(由外部传入)
+     * 格式: [String[], deniedRunnable]
+     * String[]: 需要申请的权限
+     * deniedRunnable: 被拒绝后的操作
+     * @return 需要申请的权限集合
+     */
+    public Object[] applyPermission() {
+        return null; // 默认返回空
+    }
+
+    /**
+     * 2024新权限用法: 申请权限结果处理器
+     */
+    private final ActivityResultLauncher<String[]> xLauncher = registerForActivityResult(//
+            new ActivityResultContracts.RequestMultiplePermissions(), //
+            this::handlePermissionsResult);//
+
+    /**
+     * 2024新权限用法: 处理权限结果
+     *
+     * @param permissions 权限结果
+     */
+    private void handlePermissionsResult(Map<String, Boolean> permissions) {
+        // 打印所有请求的权限
+        Log.v(TAG, "所有需要申请的权限: \n");
+        for (Map.Entry<String, Boolean> entry : permissions.entrySet()) {
+            Log.v(TAG, entry.getKey() + " : " + entry.getValue());
+        }
+        
+        // 创建一个新的Map来存储被拒绝的权限
+        Map<String, Boolean> deniedPermissions = new ArrayMap<>();
+        for (Map.Entry<String, Boolean> entry : permissions.entrySet()) {
+            // 如果权限被拒绝
+            if (!entry.getValue()) deniedPermissions.put(entry.getKey(), entry.getValue());
+        }
+        
+        // 集合如果为空, 说明全部权限都通过了
+        if (permissions.isEmpty()) {
+            Log.i(TAG, getClass().getName() + " [xLauncher]: 全部权限都已通过, 执行allPassRunable()");
+            if (allPassRunable != null) allPassRunable.run();
+            
+        } else {
+            Log.w(TAG, getClass().getName() + " [xLauncher]: 以下权限未通过：执行deniedRunnable()");
+            for (Map.Entry<String, Boolean> entry : deniedPermissions.entrySet()) {
+                Log.w(TAG, entry.getKey());
+            }
+            // 权限被拒绝 -- 回调给用户处理
+            if (deniedAction != null) deniedAction.onDenied(new ArrayList<>(deniedPermissions.keySet()));
+            
+        }
+    }
+
+    /**
+     * 2024新权限用法: 发起权限申请(外部Fragment根据业务情况调用)
+     *
+     * @param allPassRunable 全部权限通过后的回调
+     */
+    public void startPermission(Runnable allPassRunable) {
+        doPermissionAction(allPassRunable, false);
+    }
+
+
+    /**
+     * 2024新权限用法: 执行权限操作
+     *
+     * @param allPassRunable 全部权限通过后的回调
+     * @param isHadReject    用户是否点击过[不再询问], 默认为false
+     */
+    private void doPermissionAction(Runnable allPassRunable, boolean isHadReject) {
+        // 保存用户允许权限后的回调
+        this.allPassRunable = allPassRunable;
+        // 检查是否有权限需要申请 (防止用户自己去设置页打开)
+        if (needPermissions == null || needPermissions.length == 0) {
+            Log.v(TAG, getClass().getName() + " [startPermission()]: 没有权限需要申请");
+            allPassRunable.run(); // 直接回调给外部做业务逻辑
+            return;
+        }
+        
+        // 用于存储未授权的权限
+        List<String> deniedPermissions = new ArrayList<>();
+        // 检查是否有未授权的权限
+        for (String permission : needPermissions) {
+            if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_DENIED) {
+                deniedPermissions.add(permission);
+            }
+        }
+        
+        // 如果存在未授权的权限，申请权限
+        if (!deniedPermissions.isEmpty()) {
+            Log.v(TAG, getClass().getName() + " [startPermission()]: 没有权限: " + deniedPermissions + ", 申请权限");
+            // 判断权限是否为[不再询问]
+            for (String permission : deniedPermissions) {
+                if (!ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                    // 如果是进入页面的首次申请 (isHadReject==false)
+                    if (!isHadReject) {
+                        // 回调给用户处理 (比如弹窗)
+                        if (deniedAction != null) deniedAction.onDenied(deniedPermissions);
+                    } else {
+                        // 如果弹窗调用的, 去设置页
+                        openAppSettingsPage();
+                    }
+                    
+                    // 终止下边的常规权限发起行为
+                    return;
+                }
+            }
+            // 如果在未授权的权限集当中, 如果不存在[不再询问]的权限, 则正常发起权限申请
+            xLauncher.launch(deniedPermissions.toArray(new String[0]));
+        } else {
+            // 如果权限都被授权了
+            Log.v(TAG, getClass().getName() + " [startPermission()]: 已经有所有请求的权限");
+            // 抛出给外部继续做业务逻辑
+            allPassRunable.run();
+        }
+    }
+
+    /**
+     * 2024新权限用法: 跳转到系统设置页面(外部调用)
+     */
+    public void toSetting() {
+        // 弹窗后发现没有权限需要申请
+        if (needPermissions == null || needPermissions.length == 0) {
+            Log.v(TAG, getClass().getName() + " [toSetting()]: 没有权限需要申请");
+            toast("没有权限可申请", 3000);
+            allPassRunable.run();
+            return;
+        }
+
+        // 针对读写做过滤处理
+        for (String permission : needPermissions) {
+            // 如果申请的权限中有 [读写权限] 且 [版本大于10.0]
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q && isStoragePermission(permission)) {
+                boolean isPass = handleManageAllFilesAccessPermission(); // 去[所有文件]设置页
+                // 如果用户确实没有打开过[读写所有文件]的开关, 程序就回引导用户去打开, 本循环结束
+                if (!isPass) {
+                    Log.w(TAG, getClass().getName() + " [toSetting()]: 没有打开读写[所有文件]的开关(大于安卓10.0), 去打开");
+                    return;
+                }
+            }
+        }
+
+        // 再次发起权限申请, 将用户引导到设置页(如果检测到有权限是[不再询问]的话)
+        doPermissionAction(allPassRunable, true);
+    }
+
+    /**
+     * 2024新权限用法: 判断是否是存储权限
+     *
+     * @param permission 权限
+     * @return T: 包含存储权限
+     */
+    private boolean isStoragePermission(String permission) {
+        return permission.equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) // 
+                       || permission.equals(Manifest.permission.READ_EXTERNAL_STORAGE);
+    }
+
+    /**
+     * 2024新权限用法: 处理[读写所有文件]权限
+     */
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    private boolean handleManageAllFilesAccessPermission() {
+        // 用户此时没有打开[读写所有文件]的开关
+        if (!Environment.isExternalStorageManager()) {
+            Log.w(TAG, "没有打开[读写所有文件]的开关(大于安卓10.0)");
+            // 跳转到[所有文件]设置页
+            openManageAllFilesAccessPermissionSettings();
+            return false;
+        } else {
+            Log.i(TAG, "已经打开[读写所有文件]的开关(大于安卓10.0)");
+            return true;
+        }
+    }
+
+    /**
+     * 2024新权限用法: 跳转到[所有文件]设置页
+     */
+    @RequiresApi(api = Build.VERSION_CODES.R)
+    private void openManageAllFilesAccessPermissionSettings() {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+        intent.setData(Uri.parse("package:" + getPackageName()));
+        startActivity(intent);
+    }
+
+    /**
+     * 2024新权限用法: 跳转到应用设置页面
+     */
+    private void openAppSettingsPage() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
+
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // 前置操作
         beforeAllFirst();
+        // 2024新权限用法: 接收外部的权限申请
+        Object[] permission_obj = applyPermission();
+        if (permission_obj != null) {
+            if (permission_obj.length == 2) {
+                if (permission_obj[0] instanceof String[]) {
+                    needPermissions = (String[]) permission_obj[0];
+                } else {
+                    Lgg.t(TAG).ee("第1个元素传入必须是String[]数据类型");
+                    return;
+                }
+
+                if (permission_obj[1] instanceof PermissionDeniedAction) {
+                    deniedAction = (PermissionDeniedAction) permission_obj[1];
+                } else {
+                    Lgg.t(TAG).ee("第2个元素传入必须是Runnable数据类型");
+                    return;
+                }
+            } else {
+                Lgg.t(TAG).ee("非法的权限数据参数数量");
+            }
+        } else {
+            Lgg.t(TAG).ii("目前没有权限申请");
+        }
         // 0.检测action与category是否符合规范
         boolean isActionCategoryMatch = checkActionCategory();
         if (isActionCategoryMatch) {// 0.1.符合条件则正常执行
@@ -573,11 +825,8 @@ public abstract class RootMAActivity extends FragmentActivity {
 
         // 如果是小于Android 6.0或者大于android 8.0, 则不能使用反射, PackageManager没有对应的API
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M | Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("根据Android规定, 在Android >= P之后不能使用反射机制获取IntentFilters");
-            builder.append("\n");
-            builder.append("如使用框架中出现异常, 请根据开发文档自行检测Manifest文件中Action以及Category是否符合开发规范");
-            Lgg.t(TAG).ee(builder.toString());
+            String builder = "根据Android规定, 在Android >= P之后不能使用反射机制获取IntentFilters" + "\n" + "如使用框架中出现异常, 请根据开发文档自行检测Manifest文件中Action以及Category是否符合开发规范";
+            Lgg.t(TAG).ee(builder);
             return true;
         }
 
@@ -901,7 +1150,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             builder.append("----- from: ").append(classWhichFragmentStart.getSimpleName()).append("\n");
             builder.append("----- to: ").append(targetFragmentClass.getSimpleName()).append("\n");
             builder.append("----- attach: ").append(attach != null ? attach.getClass().getSimpleName() : "Null").append("\n");
-            builder.append("----- isTargetReload: ").append(String.valueOf(isTargetReload)).append("\n");
+            builder.append("----- isTargetReload: ").append(isTargetReload).append("\n");
             builder.append("----- kill: ").append(needkills != null && needkills.length > 0 ? needkills[0].getSimpleName() : "Null").append("\n");
             builder.append("----------------------------------------------------------------------");
             builder.append("\n");
@@ -929,7 +1178,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             builder.append("----- targetAc: ").append(targetAC.getSimpleName()).append("\n");
             builder.append("----- to: ").append(target.getSimpleName()).append("\n");
             builder.append("----- attach: ").append(attach != null ? attach.getClass().getSimpleName() : "Null").append("\n");
-            builder.append("----- isTargetReload: ").append(String.valueOf(isTargetReload)).append("\n");
+            builder.append("----- isTargetReload: ").append(isTargetReload).append("\n");
             builder.append("----- kill: ").append(needKills != null && needKills.length > 0 ? needKills[0].getSimpleName() : "Null").append("\n");
             builder.append("----------------------------------------------------------------------");
             builder.append("RootLog\n");
@@ -957,7 +1206,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             builder.append("----- targetAc: ").append(activityClass).append("\n");
             builder.append("----- to: ").append(target).append("\n");
             builder.append("----- attach: ").append(attach != null ? attach.getClass().getSimpleName() : "Null").append("\n");
-            builder.append("----- isTargetReload: ").append(String.valueOf(isTargetReload)).append("\n");
+            builder.append("----- isTargetReload: ").append(isTargetReload).append("\n");
             builder.append("----- kill: ").append(needKills != null && needKills.length > 0 ? needKills[0].getSimpleName() : "Null").append("\n");
             builder.append("----------------------------------------------------------------------");
             builder.append("\n");
