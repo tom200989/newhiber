@@ -819,6 +819,16 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     }
 
     /**
+     * 调用Activity的权限发起
+     *
+     * @param allPassRunable 全部权限都通过的回调
+     */
+    public void startPermission(Runnable allPassRunable) {
+        RootMAActivity maActivity = (RootMAActivity) activity;
+        maActivity.startPermission(allPassRunable);
+    }
+
+    /**
      * 普通跳转
      *
      * @param current        当前
