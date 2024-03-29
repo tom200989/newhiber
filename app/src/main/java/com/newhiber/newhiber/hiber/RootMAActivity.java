@@ -279,7 +279,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             Log.i(TAG, getClass().getName() + " A0.5 全部权限都已通过, 执行回调给外部 ==> allPassRunable()");
             if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
             if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
-
+            RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
         } else {
 
             // 对读写做特殊处理
@@ -296,6 +296,7 @@ public abstract class RootMAActivity extends FragmentActivity {
                         Log.i(TAG, getClass().getName() + " A0.14.3 (针对Android 10.0 的特殊处理) 用户已经打开了读写开关, 执行回调给外部 ==> allPassRunable()");
                         if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
                         if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
+                        RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
                         Log.i(TAG, getClass().getName() + " A0.14.4 (针对Android 10.0 的特殊处理) 就不再走下面权限的逻辑了");
                     } else {
                         if (permissActionForFragment != null) {// 回调给fragment
@@ -352,6 +353,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             }
         }
     }
+    
 
     /**
      * 2024新权限用法: 发起权限申请(外部Fragment根据业务情况调用)
@@ -359,6 +361,7 @@ public abstract class RootMAActivity extends FragmentActivity {
      * @param permissActionForFragment 全部权限通过后的回调 (由fragment传入)
      */
     public void startPermission(PermissionAction permissActionForFragment) {
+        Log.i(TAG, "-------------------------------------------------------------------------------------- startPermission --------------------------------------------------------------------------------------");
         // (toat 保留) 保存用户允许权限后的回调
         this.permissActionForFragment = permissActionForFragment;
         // 默认需要展示权限说明
@@ -377,6 +380,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             Log.v(TAG, getClass().getName() + " A0.1 没有权限需要申请");
             if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 直接回调给fragment
             if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 直接回调给Activity
+            RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
             return;
         }
 
@@ -415,6 +419,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             // (toat 保留) 抛出给外部继续做业务逻辑
             if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 直接回调给fragment
             if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 直接回调给Activity
+            RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
         }
     }
 
@@ -437,6 +442,8 @@ public abstract class RootMAActivity extends FragmentActivity {
         intent.setData(Uri.parse("package:" + getPackageName()));
         // startActivity(intent);
         settingLauncher.launch(intent);
+        // (toat 保留: 防止无限申请权限的操作) A4. 不管触发了哪类设置页的跳转, 都结束当前APP, 为下次的权限检测做准备
+        killAllActivitys();
     }
 
     /**
@@ -449,6 +456,8 @@ public abstract class RootMAActivity extends FragmentActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
         // startActivity(intent);
         settingLauncher.launch(intent);
+        // (toat 保留: 防止无限申请权限的操作) A4. 不管触发了哪类设置页的跳转, 都结束当前APP, 为下次的权限检测做准备
+        killAllActivitys();
     }
 
 

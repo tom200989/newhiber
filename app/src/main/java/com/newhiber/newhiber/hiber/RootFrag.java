@@ -277,7 +277,10 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
              * 那么设置了OFF_ALL的会把ON的杀掉, 造成定时器不启动的感觉
              * 所以要利用isHidden()来过滤, 以当前显示给用户的界面为准
              * */
-            if (!isReloadData() & EventBus.getDefault().isRegistered(this) & !isHidden()) {
+            isReloadData = isReloadData(); // (toat 保留: 防止无限申请权限的操作) A0. 保存isReloadData的状态到本地
+            isTmpReload = isReloadData(); // (toat 保留: 防止无限申请权限的操作) A1. 保存isReloadData的状态到临时变量
+
+            if (!isReloadData & EventBus.getDefault().isRegistered(this) & !isHidden()) {
                 Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume--> 开始启动定时器");
                 beginTimer();
             }
@@ -625,7 +628,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     public void onPause() {
         super.onPause();
         Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onPause()");
-        if (EventBus.getDefault().isRegistered(this) && isReloadData()) {
+        if (EventBus.getDefault().isRegistered(this) && isReloadData) {
             Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":eventbus unregister");
             EventBus.getDefault().unregister(this);
         }
@@ -830,12 +833,17 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
         this.permissbean = permissbean;
     }
 
+    public static boolean isReloadData = false; // (toat 保留: 防止无限申请权限的操作) A0. 初始化isReloadData的状态, 但这个值只为本类全局调用
+    public static boolean isTmpReload = true; // (toat 保留: 防止无限申请权限的操作) A0. 这个值是临时存储isReloadData的状态, 然后在权限全部通过后, 重新赋值给isReloadData
+
     /**
      * 调用Activity的权限发起
      *
      * @param permissActionForFragment 权限回调
      */
     public void startPermission(PermissionAction permissActionForFragment) {
+        // (toat 保留: 防止无限申请权限的操作) A1.当发起权限时, 把isReloadData设置为false, 防止在权限申请时, 重复执行onNexts()
+        isReloadData = false; 
         RootMAActivity maActivity = (RootMAActivity) activity;
         maActivity.startPermission(permissActionForFragment);
     }
