@@ -10,6 +10,7 @@ import java.io.Serializable;
 /*
  * Created by qianli.ma on 2019/2/21 0021.
  */
+@Deprecated
 public class SuperBean implements Serializable {
 
     public View superView;// 自定义视图(超管)

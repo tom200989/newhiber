@@ -23,6 +23,7 @@ import com.newhiber.newhiber.cons.PERTYPE;
 import com.newhiber.newhiber.cons.SUPERMISSION;
 import com.newhiber.newhiber.cons.TimerState;
 import com.newhiber.newhiber.impl.PermissedListener;
+import com.newhiber.newhiber.impl.PermissionAction;
 import com.newhiber.newhiber.impl.RootEventListener;
 import com.newhiber.newhiber.impl.SuperPermissListener;
 import com.newhiber.newhiber.tools.Lgg;
@@ -127,7 +128,6 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
         initViewFinish(inflateView);
         // 5.外部定义了 [初始化申请超管权限]
         if (requestSUPermission().supermission == SUPERMISSION.INIT & isNeedSuPermiss()) {
-            // TODO: 2021/01/022  弹窗
             showPermissFrag(PERTYPE.SUPER, null);
             return inflateView;
         }
@@ -139,6 +139,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     /**
      * 初始化其他权限
      */
+    @Deprecated
     private void initOtherPermiss() {
         String[] tempInitPermisseds = initPermissed();
         initPermisseds = tempInitPermisseds == null ? new String[]{} : tempInitPermisseds;
@@ -151,8 +152,8 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      *
      * @return T:需要申请 F:不需要申请
      */
+    @Deprecated
     private boolean isNeedSuPermiss() {
-        // TODO: 2021/01/022  
         // Android R以下 - 不需申请
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":initSuPermis(): Android R以下无需申请");
@@ -232,6 +233,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      *
      * @param permisseds 需要初始的权限组
      */
+    @Deprecated
     private void initPermissedActionMap(String[] permisseds) {
         Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":initPermissedActionMap()");
         if (permissedActionMap == null) {
@@ -301,6 +303,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      *
      * @param isClickPermissed 是否为点击申请
      */
+    @Deprecated
     private void handlePermissed(boolean isClickPermissed) {
         Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":handlePermissed()");
         // 如果用户在同意后到system setting做了取消操作，需要把权限状态更新一下
@@ -341,6 +344,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      * @param perType         窗口类型(超管、普通权限)
      * @param denyPermissions 权限组
      */
+    @Deprecated
     private void showPermissFrag(PERTYPE perType, List<String> denyPermissions) {
         // * 普通权限窗口
         if (perType == PERTYPE.NORMAL) {
@@ -362,7 +366,6 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
 
         // * 超管权限窗口
         if (perType == PERTYPE.SUPER) {
-            // TODO: 2021/01/022  弹窗
             // 采用fragment方案代替以上方案 20190306
             Lgg.t(Cons.TAG).ii("prepare the SuperInnerBean");
             SuperBean superBean = requestSUPermission();
@@ -393,7 +396,6 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
 
                 @Override
                 public void superPermissCancel() {// 用户点击了弹框的[取消]按钮
-                    // TODO: 2021/01/022  弹窗 - 回调业务
                     RootFrag.this.isOnResume = false;
                     superBean.getBussinessListener().clickSuperCancel();
                 }
@@ -727,7 +729,6 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      * @return 默认为 NONE: 不申请
      */
     public SuperBean requestSUPermission() {
-        // TODO: 2021/01/022  弹窗
         SuperBean superBean = new SuperBean();
         superBean.setSuperView(null);
         superBean.setSupermission(SUPERMISSION.NONE);
@@ -771,11 +772,10 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      *
      * @param permissions 需要申请的权限组
      */
+    @Deprecated
     public void clickPermissed(String[] permissions) {
         tmp_click_permissions = permissions;
-        // TODO: 2021/01/022  申请超管权限
         if (requestSUPermission().supermission == SUPERMISSION.CLICK & isNeedSuPermiss()) {
-            // TODO: 2021/01/022  弹窗
             showPermissFrag(PERTYPE.SUPER, null);
             return;
         }
@@ -788,6 +788,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      *
      * @param permissions 需要申请的权限组
      */
+    @Deprecated
     private void clickOtherPermiss(String[] permissions) {
         Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":clickPermissed()");
         initPermisseds = new String[]{};// 1.该步防止初始化权限重复申请
@@ -814,6 +815,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
      *
      * @param permissbean 权限对象
      */
+    @Deprecated
     public void setPermissBean(PermissBean permissbean) {
         this.permissbean = permissbean;
     }
@@ -821,11 +823,11 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     /**
      * 调用Activity的权限发起
      *
-     * @param allPassRunable 全部权限都通过的回调
+     * @param permissActionForFragment 权限回调
      */
-    public void startPermission(Runnable allPassRunable) {
+    public void startPermission(PermissionAction permissActionForFragment) {
         RootMAActivity maActivity = (RootMAActivity) activity;
-        maActivity.startPermission(allPassRunable);
+        maActivity.startPermission(permissActionForFragment);
     }
 
     /**

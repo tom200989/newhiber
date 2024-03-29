@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * 2024新权限用法: 申请权限失败后的回调接口
  */
-public interface PermissionDeniedAction {
+public interface PermissionAction {
 
     public enum PermissionType {
         NOW_OTHER_FALSE,// 用户点击了[不再询问], 通过该标记触发跳转应用详情页
@@ -20,4 +20,9 @@ public interface PermissionDeniedAction {
      * @param deniedPermissions 被拒绝的权限
      */
     void onDenied(PermissionType permissionType, List<String> deniedPermissions);
+
+    /**
+     * 申请权限全部通过后的回调接口
+     */
+    void onAllGranted();
 }

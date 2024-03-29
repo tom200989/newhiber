@@ -7,6 +7,7 @@ import java.io.Serializable;
 /*
  * Created by qianli.ma on 2019/2/21 0021.
  */
+@Deprecated
 public class PermissBean implements Serializable {
     
     private View permissView;// 自定义视图(普通)

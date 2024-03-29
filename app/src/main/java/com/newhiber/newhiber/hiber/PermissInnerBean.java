@@ -12,6 +12,7 @@ import androidx.annotation.LayoutRes;
 /*
  * Created by qianli.ma on 2019/3/4 0004.
  */
+@Deprecated
 public class PermissInnerBean implements Serializable {
 
     /**
@@ -39,8 +40,7 @@ public class PermissInnerBean implements Serializable {
      */
     private Class currentFrag;
 
-    private @LayoutRes
-    int layoutId;
+    private @LayoutRes int layoutId;
 
 
     public PermissInnerBean() {

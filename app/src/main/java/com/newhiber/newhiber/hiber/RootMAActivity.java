@@ -44,7 +44,7 @@ import com.newhiber.newhiber.bean.RootProperty;
 import com.newhiber.newhiber.bean.SkipBean;
 import com.newhiber.newhiber.cons.Cons;
 import com.newhiber.newhiber.hiber.language.LangHelper;
-import com.newhiber.newhiber.impl.PermissionDeniedAction;
+import com.newhiber.newhiber.impl.PermissionAction;
 import com.newhiber.newhiber.impl.RootEventListener;
 import com.newhiber.newhiber.tools.Lgg;
 import com.newhiber.newhiber.tools.backhandler.BackHandlerHelper;
@@ -77,9 +77,9 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
-import static com.newhiber.newhiber.impl.PermissionDeniedAction.PermissionType.NOW_OTHER_FALSE;
-import static com.newhiber.newhiber.impl.PermissionDeniedAction.PermissionType.NOW_OTHER_TRUE;
-import static com.newhiber.newhiber.impl.PermissionDeniedAction.PermissionType.NOW_WRITE_READ;
+import static com.newhiber.newhiber.impl.PermissionAction.PermissionType.NOW_OTHER_FALSE;
+import static com.newhiber.newhiber.impl.PermissionAction.PermissionType.NOW_OTHER_TRUE;
+import static com.newhiber.newhiber.impl.PermissionAction.PermissionType.NOW_WRITE_READ;
 
 /*
  * Created by qianli.ma on 2018/6/20 0020.
@@ -205,15 +205,26 @@ public abstract class RootMAActivity extends FragmentActivity {
     protected String[] needPermissions = {};
 
     /**
-     * 2024新权限用法: 申请权限失败后的回调对象
+     * 2024新权限用法: 申请权限的回调动作 
+     * (外部Activity通过重写 Activity.applyPermission() 进行传入)
      */
-    protected PermissionDeniedAction deniedAction;
-
+    protected PermissionAction permissActionForActivity;
+    
+    /**
+     * 2024新权限用法: 申请权限的回调动作 
+     * (外部Fragment通过调用 startPermission() 进行传入)
+     */
+    protected PermissionAction permissActionForFragment;
 
     /**
-     * 2024新权限用法: 全部权限通过后的回调
+     * 2024新权限用法: 全部权限通过后的回调 (由fragment传入)
      */
-    protected Runnable allPassRunable = null;
+    // protected Runnable allGrantedRunnable = null;
+
+    /**
+     * 2024新权限用法: 权限被拒绝后的回调 (由fragment传入)
+     */
+    // protected Runnable deniedRunable = null;
 
     /**
      * 2024新权限用法: 用于装载需要申请的权限(由外部传入)
@@ -257,7 +268,8 @@ public abstract class RootMAActivity extends FragmentActivity {
         // (toat 保留) 集合如果为空, 说明全部权限都通过了
         if (deniedPermissions.isEmpty()) {
             Log.i(TAG, getClass().getName() + " A0.5 全部权限都已通过, 执行回调给外部 ==> allPassRunable()");
-            if (allPassRunable != null) allPassRunable.run();
+            if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
+            if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
 
         } else {
 
@@ -273,12 +285,17 @@ public abstract class RootMAActivity extends FragmentActivity {
                     Log.v(TAG, getClass().getName() + " A0.14.2 (针对Android 10.0 的特殊处理) 此时检查读写的开关是否有打开(true: 打开): " + isPass);
                     if (isPass) {
                         Log.i(TAG, getClass().getName() + " A0.14.3 (针对Android 10.0 的特殊处理) 用户已经打开了读写开关, 执行回调给外部 ==> allPassRunable()");
-                        if (allPassRunable != null) allPassRunable.run();
+                        if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
+                        if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
                         Log.i(TAG, getClass().getName() + " A0.14.4 (针对Android 10.0 的特殊处理) 就不再走下面权限的逻辑了");
                     } else {
-                        if (deniedAction != null) {
-                            Log.v(TAG, getClass().getName() + " A0.14.4.1 (针对Android 10.0 的特殊处理) 用户没有打开读写开关, 执行 ==> deniedAction(false), 此时应该弹窗提示用户了");
-                            deniedAction.onDenied(NOW_WRITE_READ, new ArrayList<>(deniedPermissions.keySet()));
+                        if (permissActionForFragment != null) {// 回调给fragment
+                            Log.v(TAG, getClass().getName() + " A0.14.4.1 (针对Android 10.0 的特殊处理) 用户没有打开读写开关, 执行 ==> deniedAction(false), 此时回调给Fragment做业务处理");
+                            permissActionForFragment.onDenied(NOW_WRITE_READ, new ArrayList<>(deniedPermissions.keySet()));
+                        }
+                        if (permissActionForActivity != null) {// 回调给Activity
+                            Log.v(TAG, getClass().getName() + " A0.14.4.2 (针对Android 10.0 的特殊处理) 用户没有打开读写开关, 执行 ==> deniedAction(false), 此时回调给Activity应该弹窗提示用户了");
+                            permissActionForActivity.onDenied(NOW_WRITE_READ, new ArrayList<>(deniedPermissions.keySet()));
                         }
                     }
                     return; // 结束方法执行
@@ -293,28 +310,36 @@ public abstract class RootMAActivity extends FragmentActivity {
                 boolean isshould = ActivityCompat.shouldShowRequestPermissionRationale(this, key);
                 Log.w(TAG, getClass().getName() + " A0.6 有权限是被拒绝的, 所以要判断一下用户是否点击了[不再询问](用户如果点击了的话, 会返回false), 当前检查" + key + "的结果是: " + isshould);
                 if (!ActivityCompat.shouldShowRequestPermissionRationale(this, key)) {
-                    if (deniedAction != null) {
 
-                        // 此处还需要加入一个额外的判断, 就是当系统随机万一首先申请读写权限时
-                        // 对于大于10.0的版本来讲, shouldShowRequestPermissionRationale 永远都是false的
-                        // 所以如果遇到这种情况, 就先跳过读写权限的判断, 先识别其他权限
-                        if (key.equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) // 
-                                    || key.equals(Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                            Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 但是这是读写权限, 先跳过, 继续判断其他权限");
-                            continue;
-                        }
-
-                        Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 执行 ==> deniedAction(false), 直接返回给用户先处理当前这个权限了, 不做其他校验了");
-                        deniedAction.onDenied(NOW_OTHER_FALSE, new ArrayList<>(deniedPermissions.keySet()));
+                    // 此处还需要加入一个额外的判断, 就是当系统随机万一首先申请读写权限时
+                    // 对于大于10.0的版本来讲, shouldShowRequestPermissionRationale 永远都是false的
+                    // 所以如果遇到这种情况, 就先跳过读写权限的判断, 先识别其他权限
+                    if (key.equals(Manifest.permission.WRITE_EXTERNAL_STORAGE) // 
+                                || key.equals(Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                        Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 但是这是读写权限, 先跳过, 继续判断其他权限");
+                        continue;
+                    }
+                    
+                    if (permissActionForFragment != null) {// 回调给fragment
+                        Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 执行 ==> deniedAction(false), 直接返回给Fragment做业务处理, 不做其他校验了");
+                        permissActionForFragment.onDenied(NOW_OTHER_FALSE, new ArrayList<>(deniedPermissions.keySet()));
+                    }
+                    if (permissActionForActivity != null) { // 回调给Activity
+                        Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 执行 ==> deniedAction(false), 直接返回给Activity用户先处理当前这个权限了, 不做其他校验了");
+                        permissActionForActivity.onDenied(NOW_OTHER_FALSE, new ArrayList<>(deniedPermissions.keySet()));
                     }
                     return;
                 }
             }
 
             // (toat 保留) 权限被拒绝 -- 回调给用户处理
-            if (deniedAction != null) {
+            if (permissActionForFragment != null) {// 回调给fragment
+                Log.i(TAG, getClass().getName() + " A0.8 如果以上的权限都没有被点击过[不再询问], 那么就执行 ==> deniedAction(true), 给Fragment做业务处理");
+                permissActionForFragment.onDenied(NOW_OTHER_TRUE, new ArrayList<>(deniedPermissions.keySet()));
+            }
+            if (permissActionForActivity != null) { // 回调给Activity
                 Log.i(TAG, getClass().getName() + " A0.8 如果以上的权限都没有被点击过[不再询问], 那么就执行 ==> deniedAction(true), 给用户一个机会再次申请权限");
-                deniedAction.onDenied(NOW_OTHER_TRUE, new ArrayList<>(deniedPermissions.keySet()));
+                permissActionForActivity.onDenied(NOW_OTHER_TRUE, new ArrayList<>(deniedPermissions.keySet()));
             }
         }
     }
@@ -322,27 +347,27 @@ public abstract class RootMAActivity extends FragmentActivity {
     /**
      * 2024新权限用法: 发起权限申请(外部Fragment根据业务情况调用)
      *
-     * @param allPassRunable 全部权限通过后的回调
+     * @param permissActionForFragment 全部权限通过后的回调 (由fragment传入)
      */
-    public void startPermission(Runnable allPassRunable) {
+    public void startPermission(PermissionAction permissActionForFragment) {
+        // (toat 保留) 保存用户允许权限后的回调
+        this.permissActionForFragment = permissActionForFragment;
         // 默认需要展示权限说明
-        doPermissionAction(allPassRunable, NOW_OTHER_TRUE);
+        doPermissionAction(NOW_OTHER_TRUE);
     }
 
 
     /**
      * 2024新权限用法: 执行权限操作
      *
-     * @param allPassRunable 全部权限通过后的回调
-     * @param permissionType 权限类型
+     * @param permissionType     权限类型
      */
-    private void doPermissionAction(Runnable allPassRunable, PermissionDeniedAction.PermissionType permissionType) {
-        // (toat 保留) 保存用户允许权限后的回调
-        this.allPassRunable = allPassRunable;
+    private void doPermissionAction(PermissionAction.PermissionType permissionType) {
         // 检查是否有权限需要申请 (防止用户自己去设置页打开)
         if (needPermissions == null || needPermissions.length == 0) {
             Log.v(TAG, getClass().getName() + " A0.1 没有权限需要申请");
-            allPassRunable.run(); // 直接回调给外部做业务逻辑
+            if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 直接回调给fragment
+            if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 直接回调给Activity
             return;
         }
 
@@ -379,18 +404,19 @@ public abstract class RootMAActivity extends FragmentActivity {
             // (toat 保留) 如果权限都被授权了
             Log.v(TAG, getClass().getName() + " A0.3 已经有所有请求的权限, 执行回调给外部 ==> allPassRunable()");
             // (toat 保留) 抛出给外部继续做业务逻辑
-            allPassRunable.run();
+            if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 直接回调给fragment
+            if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 直接回调给Activity
         }
     }
 
     /**
      * 2024新权限用法: 跳转到系统设置页面(外部调用)
      */
-    public void toSetting(PermissionDeniedAction.PermissionType permissionType) {
+    public void toSetting(PermissionAction.PermissionType permissionType) {
         Log.v(TAG, getClass().getName() + " A0.9 用户这时点击弹窗了");
         // (toat 保留) 再次发起权限申请, 将用户引导到设置页(如果检测到有权限是[不再询问]的话)
         Log.v(TAG, getClass().getName() + " A0.10 这是看下之前回调给用户的是什么值: " + permissionType);
-        doPermissionAction(allPassRunable, permissionType);
+        doPermissionAction(permissionType);
     }
 
 
@@ -423,7 +449,7 @@ public abstract class RootMAActivity extends FragmentActivity {
         ApplyPermissionBean apb = applyPermission();
         if (apb != null) {
             needPermissions = apb.getPermissions();
-            deniedAction = apb.getAction();
+            permissActionForActivity = apb.getAction();
         } else {
             Lgg.t(TAG).ii("目前没有权限申请");
         }

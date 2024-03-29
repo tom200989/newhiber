@@ -1,6 +1,6 @@
 package com.newhiber.newhiber.bean;
 
-import com.newhiber.newhiber.impl.PermissionDeniedAction;
+import com.newhiber.newhiber.impl.PermissionAction;
 
 import java.io.Serializable;
 
@@ -12,12 +12,12 @@ import java.io.Serializable;
 public class ApplyPermissionBean implements Serializable {
 
     public String[] permissions;
-    public PermissionDeniedAction action;
+    public PermissionAction action;
 
     public ApplyPermissionBean() {
     }
 
-    public ApplyPermissionBean(String[] permissions, PermissionDeniedAction action) {
+    public ApplyPermissionBean(String[] permissions, PermissionAction action) {
         this.permissions = permissions;
         this.action = action;
     }
@@ -31,11 +31,11 @@ public class ApplyPermissionBean implements Serializable {
         return this;
     }
 
-    public PermissionDeniedAction getAction() {
+    public PermissionAction getAction() {
         return action;
     }
 
-    public ApplyPermissionBean setAction(PermissionDeniedAction action) {
+    public ApplyPermissionBean setAction(PermissionAction action) {
         this.action = action;
         return this;
     }

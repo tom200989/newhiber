@@ -13,6 +13,7 @@ import androidx.annotation.LayoutRes;
 /*
  * Created by Administrator on 2021/01/022.
  */
+@Deprecated
 public class SuperInnerBean implements Serializable {
 
     /**
