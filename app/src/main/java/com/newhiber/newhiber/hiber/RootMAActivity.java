@@ -250,6 +250,7 @@ public abstract class RootMAActivity extends FragmentActivity {
      */
     private final ActivityResultLauncher<Intent> settingLauncher = registerForActivityResult(//
             new ActivityResultContracts.StartActivityForResult(), result -> {//
+                // TODO: 3/29/2024 当前业务暂时没有这个需求, 以后在说
                 Log.i(TAG, getClass().getName() + " A0.15 用户打开了系统设置页: " + result.getResultCode());
             });
 
