@@ -3,6 +3,9 @@ package com.newhiber.newhiber.hiber;
 import android.os.Handler;
 import android.widget.Toast;
 
+import com.newhiber.newhiber.cons.Cons;
+import com.newhiber.newhiber.tools.Lgg;
+
 import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
@@ -95,6 +98,7 @@ public class FraHelpers {
             /* 这一句一定要有, 即commit()后要求FT立刻执行, 否则是异步执行 */
             fm.executePendingTransactions();
             // 首次触发RootFrag里的onNexts()执行
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ": 首次触发triggerInit");
             triggerInit(clazz, attach);
         } catch (Exception e) {
             e.printStackTrace();
@@ -112,6 +116,7 @@ public class FraHelpers {
         fragBean.setCurrentFragmentClass(clazz);
         fragBean.setTargetFragmentClass(clazz);
         fragBean.setAttach(attach);
+        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ": 装包(current: " + clazz.getSimpleName() + ", target: " + clazz.getSimpleName());
         EventBus.getDefault().removeStickyEvent(FragBean.class);
         EventBus.getDefault().postSticky(fragBean);
     }
@@ -142,7 +147,7 @@ public class FraHelpers {
      *
      * @param target         需要切换的fragment class
      * @param isTargetReload 是否强制重载
-     * @param needKills       需要移除的fragment
+     * @param needKills      需要移除的fragment
      */
     public void transfer(Class target, boolean isTargetReload, Class... needKills) {
 

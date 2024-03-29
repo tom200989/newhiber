@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -125,9 +126,10 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
         // 2.填充视图
         inflateView = View.inflate(activity, layoutId, null);
         // 4.加载完视图后的操作--> 由子类重写
-        initViewFinish(inflateView);
+        onCreatedViewFinish(inflateView);
         // 5.外部定义了 [初始化申请超管权限]
         if (requestSUPermission().supermission == SUPERMISSION.INIT & isNeedSuPermiss()) {
+            Log.i(TAG, "onCreateView: requestSUPermission");
             showPermissFrag(PERTYPE.SUPER, null);
             return inflateView;
         }
@@ -144,7 +146,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
         String[] tempInitPermisseds = initPermissed();
         initPermisseds = tempInitPermisseds == null ? new String[]{} : tempInitPermisseds;
         initPermissedActionMap(initPermisseds);
-        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":return inflateView & init permissed");
+        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":initOtherPermiss");
     }
 
     /**
@@ -252,13 +254,16 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     @Override
     public void onResume() {
         super.onResume();
+
         if (!isOnResume) return;
         Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume()");
         /* 1.初始化检查权限 */
         if (isReqPermissed(initPermisseds)) {
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume--> isReqPermissed() 为true");
             // 1.1.处理未申请权限
             handlePermissed(false);
         } else {
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume--> isReqPermissed() 为false");
             // 1.2.因点击申请时将initPermissions置空--> 初始化权限申请行为将不被重复触发
             // TOAT: 2018/12/21 疑问：是否有必要把初始化权限申请全部通过之后的回调提供给开发人员？目前不提供
             //if (permissedListener != null && initPermisseds != null) {
@@ -273,20 +278,24 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
              * 所以要利用isHidden()来过滤, 以当前显示给用户的界面为准
              * */
             if (!isReloadData() & EventBus.getDefault().isRegistered(this) & !isHidden()) {
+                Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume--> 开始启动定时器");
                 beginTimer();
             }
 
             // 1.2.初始化权限全部通过 || 点击申请即使不通过 --> 也不影响数据初始化
             if (!EventBus.getDefault().isRegistered(this)) {
                 // stick包存在--> 首次加载--> 执行注册
+                Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":注册 EventBus");
                 EventBus.getDefault().register(this);
             }
         }
 
         /* 触发点击申请权限行为 */
         if (isReqPermissed(clickPermisseds)) {
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume--> isReqPermissed(clickPermisseds) 为true");
             handlePermissed(true);
         } else {
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":onResume--> isReqPermissed(clickPermisseds) 为false");
             // 点击申请权限全部通过--> 接口回调
             if (permissedListener != null && clickPermisseds != null && clickPermisseds.length > 0) {
                 // TOAT: 此处先清空权限集合是为了处理［开发人员在监听回调中再次设置权限监听的情况］
@@ -511,15 +520,16 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
          * 会造成内存溢出
          *
          * */
-        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":getData()");
+        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":获取粘性事件 getData()");
         Object attachs = bean.getAttach();
         whichFragmentStart = bean.getCurrentFragmentClass().getSimpleName();
         String targetFragment = bean.getTargetFragmentClass().getSimpleName();
-        Lgg.t(Cons.TAG).vv("whichFragmentStart: " + whichFragmentStart);
-        Lgg.t(Cons.TAG).vv("targetFragment: " + targetFragment);
+        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ": whichFragmentStart: " + whichFragmentStart);
+        Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ": targetFragment: " + targetFragment);
         // 确保现在运行的是目标fragment
         if (getClass().getSimpleName().equalsIgnoreCase(targetFragment)) {
-            Lgg.t(Cons.TAG).vv("whichFragmentStart <equal to> targetFragment");
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ": whichFragmentStart <equal to> targetFragment");
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ": 执行onNexts()交付给外部业务");
             onNexts(attachs, inflateView, whichFragmentStart);// 抽象
             beginTimer();// 开始启动定时器
         }
@@ -681,7 +691,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     /**
      * 首次初始化视图完成后的操作
      */
-    public void initViewFinish(View inflateView) {
+    public void onCreatedViewFinish(View inflateView) {
 
     }
 
@@ -794,7 +804,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
         initPermisseds = new String[]{};// 1.该步防止初始化权限重复申请
         clickPermisseds = permissions == null ? new String[]{} : permissions;
         if (isReqPermissed(clickPermisseds)) {// 2.点击权限申请
-            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":to request permissed");
+            Lgg.t(Cons.TAG).vv("Method--> " + getClass().getSimpleName() + ":clickOtherPermiss to request permissed");
             initPermissedActionMap(clickPermisseds);
             if (clickPermisseds != null && clickPermisseds.length > 0) {
                 requestPermissions(clickPermisseds, permissedCode);

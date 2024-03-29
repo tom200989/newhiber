@@ -205,13 +205,13 @@ public abstract class RootMAActivity extends FragmentActivity {
     protected String[] needPermissions = {};
 
     /**
-     * 2024新权限用法: 申请权限的回调动作 
+     * 2024新权限用法: 申请权限的回调动作
      * (外部Activity通过重写 Activity.applyPermission() 进行传入)
      */
     protected PermissionAction permissActionForActivity;
-    
+
     /**
-     * 2024新权限用法: 申请权限的回调动作 
+     * 2024新权限用法: 申请权限的回调动作
      * (外部Fragment通过调用 startPermission() 进行传入)
      */
     protected PermissionAction permissActionForFragment;
@@ -241,9 +241,17 @@ public abstract class RootMAActivity extends FragmentActivity {
     /**
      * 2024新权限用法: 申请权限结果处理器
      */
-    private final ActivityResultLauncher<String[]> xLauncher = registerForActivityResult(//
+    private final ActivityResultLauncher<String[]> permissinLauncher = registerForActivityResult(//
             new ActivityResultContracts.RequestMultiplePermissions(), //
             this::handlePermissionsResult);//
+
+    /**
+     * 2024新权限用法: 跳转[所有文件]及[应用详情页]处理器
+     */
+    private final ActivityResultLauncher<Intent> settingLauncher = registerForActivityResult(//
+            new ActivityResultContracts.StartActivityForResult(), result -> {//
+                Log.i(TAG, getClass().getName() + " A0.15 用户打开了系统设置页: " + result.getResultCode());
+            });
 
     /**
      * 2024新权限用法: 处理权限结果
@@ -319,7 +327,7 @@ public abstract class RootMAActivity extends FragmentActivity {
                         Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 但是这是读写权限, 先跳过, 继续判断其他权限");
                         continue;
                     }
-                    
+
                     if (permissActionForFragment != null) {// 回调给fragment
                         Log.w(TAG, getClass().getName() + " A0.7 用户确实点击了 " + key + " [不再询问]: 执行 ==> deniedAction(false), 直接返回给Fragment做业务处理, 不做其他校验了");
                         permissActionForFragment.onDenied(NOW_OTHER_FALSE, new ArrayList<>(deniedPermissions.keySet()));
@@ -360,7 +368,7 @@ public abstract class RootMAActivity extends FragmentActivity {
     /**
      * 2024新权限用法: 执行权限操作
      *
-     * @param permissionType     权限类型
+     * @param permissionType 权限类型
      */
     private void doPermissionAction(PermissionAction.PermissionType permissionType) {
         // 检查是否有权限需要申请 (防止用户自己去设置页打开)
@@ -388,7 +396,7 @@ public abstract class RootMAActivity extends FragmentActivity {
             if (permissionType == NOW_OTHER_TRUE) {
                 // 首次默认去申请
                 Log.v(TAG, getClass().getName() + " A0.11 此时如果是第一次页面发起申请 或者 用户在之前的行为没有连续拒绝或者点击[不再询问], 那就再次对所有权限发起申请");
-                xLauncher.launch(deniedPermissions.toArray(new String[0]));
+                permissinLauncher.launch(deniedPermissions.toArray(new String[0]));
             } else if (permissionType == NOW_WRITE_READ) {
                 // 对于大于10.0的版本来讲, 只有直接跳转到[打开所有文件]设置页
                 Log.v(TAG, getClass().getName() + " A0.11 此时如果是用户点击了弹窗且识别到是大于Android 10.0的读写类型, 就直接跳转到[打开所有文件]设置页");
@@ -426,7 +434,8 @@ public abstract class RootMAActivity extends FragmentActivity {
     private void openManageAllFilesAccessPermissionSettings() {
         Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
         intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivity(intent);
+        // startActivity(intent);
+        settingLauncher.launch(intent);
     }
 
     /**
@@ -437,7 +446,8 @@ public abstract class RootMAActivity extends FragmentActivity {
         Uri uri = Uri.fromParts("package", getPackageName(), null);
         intent.setData(uri);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        // startActivity(intent);
+        settingLauncher.launch(intent);
     }
 
 
@@ -494,7 +504,7 @@ public abstract class RootMAActivity extends FragmentActivity {
                     // 8.处理从其他组件传递过来的数据
                     handleIntentExtra(getIntent());
                     // 9.视图填充完毕
-                    initViewFinish(layoutId);
+                    onCreateFinish(layoutId);
                     // 10.注册Activity的Eventbus
                     EventBus.getDefault().register(this);
 
@@ -629,6 +639,7 @@ public abstract class RootMAActivity extends FragmentActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.i(TAG, "Method--> " + getClass().getSimpleName() + ":onResume()");
         // 视图结构树加载并显示到屏幕后 - 回调 - 一般用于获取控件大小
         Looper.myQueue().addIdleHandler(new IdleHandlerImpl());
         if (!EventBus.getDefault().isRegistered(this)) {
@@ -639,6 +650,7 @@ public abstract class RootMAActivity extends FragmentActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        Lgg.t(TAG).vv("Method--> " + getClass().getSimpleName() + ":onPause()");
         if (EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().unregister(this);
         }
@@ -658,6 +670,7 @@ public abstract class RootMAActivity extends FragmentActivity {
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     public void onRootEvent(Object object) {
         if (!(object instanceof FragBean)) {
+            Log.i(TAG, "onRootEvent: 过滤出非FragBean类型的数据");
             getDataHandler(object);
         }
     }
@@ -705,7 +718,7 @@ public abstract class RootMAActivity extends FragmentActivity {
      *
      * @param layoutId 视图ID
      */
-    public void initViewFinish(int layoutId) {
+    public void onCreateFinish(int layoutId) {
 
     }
 
@@ -839,7 +852,7 @@ public abstract class RootMAActivity extends FragmentActivity {
         // 如果是小于Android 6.0或者大于android 8.0, 则不能使用反射, PackageManager没有对应的API
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M | Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             String builder = "根据Android规定, 在Android >= P之后不能使用反射机制获取IntentFilters" + "\n" + "如使用框架中出现异常, 请根据开发文档自行检测Manifest文件中Action以及Category是否符合开发规范";
-            Lgg.t(TAG).ee(builder);
+            Lgg.t(TAG).ww(builder);
             return true;
         }
 
@@ -1028,6 +1041,7 @@ public abstract class RootMAActivity extends FragmentActivity {
                 }
             }
         } else {
+            Lgg.t(TAG).vv("Method--> " + getClass().getSimpleName() + ":FraHelpers.getInstance()");
             onNexts();
         }
     }
