@@ -24,6 +24,7 @@ import androidx.annotation.Nullable;
 /*
  * Created by qianli.ma on 2019/2/20 0020.
  */
+@Deprecated
 public class PermisWidget extends PercentRelativeLayout {
 
     private View inflate;

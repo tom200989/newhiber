@@ -3,6 +3,7 @@ package com.newhiber.newhiber.cons;
 /*
  * Created by Administrator on 2021/01/022.
  */
+@Deprecated
 public enum  PERTYPE {
     SUPER("SUPER"),// 超管窗口
     NORMAL("NORMAL"),// 普通权限窗口

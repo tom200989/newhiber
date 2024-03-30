@@ -1,6 +1,8 @@
 package com.newhiber.newhiber.tools;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,6 +18,9 @@ public abstract class TimerHelper {
     private Timer timer;
 
     public abstract void doSomething();
+
+    public TimerHelper() {
+    }
 
     public TimerHelper(Activity activity) {
         this.activity = activity;
@@ -34,7 +39,7 @@ public abstract class TimerHelper {
                 if (activity != null) {
                     activity.runOnUiThread(() -> doSomething());
                 } else {
-                    doSomething();
+                    new Handler(Looper.getMainLooper()).post(() -> doSomething());
                 }
 
             }
@@ -55,7 +60,7 @@ public abstract class TimerHelper {
                 if (activity != null) {
                     activity.runOnUiThread(() -> doSomething());
                 } else {
-                    doSomething();
+                    new Handler(Looper.getMainLooper()).post(() -> doSomething());
                 }
             }
         };
@@ -74,7 +79,7 @@ public abstract class TimerHelper {
                 if (activity != null) {
                     activity.runOnUiThread(() -> doSomething());
                 } else {
-                    doSomething();
+                    new Handler(Looper.getMainLooper()).post(() -> doSomething());
                 }
             }
         };

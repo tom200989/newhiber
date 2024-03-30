@@ -9,7 +9,7 @@ public interface PermissionAction {
 
     public enum PermissionType {
         NOW_OTHER_FALSE,// 用户点击了[不再询问], 通过该标记触发跳转应用详情页
-        NOW_OTHER_TRUE,// 用户没有点击[不再询问], 通过该标记触发再次触发权限弹窗
+        NOW_OTHER_TRUE,// 用户没有点击[不再询问], 通过该标记触发再次触发系统默认的权限弹窗
         NOW_WRITE_READ // 对于大于10.0的版本来讲, 只有直接跳转到[打开所有文件]设置页
     }
 

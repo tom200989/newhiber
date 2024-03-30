@@ -4,6 +4,7 @@ package com.newhiber.newhiber.cons;
  * Created by Administrator on 2021/01/022.
  * 超级管理员权限 - 文件的超权操作
  */
+@Deprecated
 public enum SUPERMISSION {
 
     INIT(Cons.REQ_SUPER_INIT), // 初始化申请

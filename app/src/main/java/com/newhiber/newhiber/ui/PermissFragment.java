@@ -24,6 +24,7 @@ import java.util.Collections;
 /*
  * Created by qianli.ma on 2019/3/4 0004.
  */
+@Deprecated
 public class PermissFragment extends RootFrag {
 
     private PermisWidget permisWidget;
