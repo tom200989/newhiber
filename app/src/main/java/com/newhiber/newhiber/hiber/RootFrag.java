@@ -837,7 +837,7 @@ public abstract class RootFrag extends Fragment implements FragmentBackHandler {
     public static boolean isTmpReload = true; // (toat 保留: 防止无限申请权限的操作) A0. 这个值是临时存储isReloadData的状态, 然后在权限全部通过后, 重新赋值给isReloadData
 
     /**
-     * 调用Activity的权限发起
+     * // (toat 保留) 1.调用Activity的权限发起
      *
      * @param permissActionForFragment 权限回调
      */

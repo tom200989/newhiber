@@ -3,7 +3,7 @@ package com.newhiber.newhiber.impl;
 import java.util.List;
 
 /**
- * 2024新权限用法: 申请权限失败后的回调接口
+ * // (toat 保留) 2024新权限用法: 申请权限失败后的回调接口
  */
 public interface PermissionAction {
 
@@ -19,7 +19,7 @@ public interface PermissionAction {
      * @param permissionType    权限类型
      * @param deniedPermissions 被拒绝的权限
      */
-    void onDenied(PermissionType permissionType, List<String> deniedPermissions);
+    void onDenied(PermissionType permissionType, List<String> deniedPermissions); 
 
     /**
      * 申请权限全部通过后的回调接口

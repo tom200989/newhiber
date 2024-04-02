@@ -6,13 +6,13 @@ import java.io.Serializable;
 
 /*
  * Created by qianli.ma on 3/28/2024.
- * 2024新权限用法: 申请权限的实体类
+ * // (toat 保留) 1.2024新权限用法: 申请权限的实体类
  *
  */
 public class ApplyPermissionBean implements Serializable {
 
-    public String[] permissions;
-    public PermissionAction action;
+    public String[] permissions; // 权限数组
+    public PermissionAction action; // 权限操作
 
     public ApplyPermissionBean() {
     }
