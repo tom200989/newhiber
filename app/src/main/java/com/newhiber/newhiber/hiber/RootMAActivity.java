@@ -274,16 +274,19 @@ public abstract class RootMAActivity extends FragmentActivity {
             }
         }
 
-        // (toat 保留) 3.3.集合如果为空, 说明全部权限都通过了
+        // (toat 保留) 3.3.集合如果为空, 说明全部权限都通过了 (但要注意的是如果大于10.0的版本, 在2.3.2步骤中移除了读写, 因此这里要补充上)
         if (deniedPermissions.isEmpty()) {
-            Log.i(TAG, getClass().getName() + " A0.5 全部权限都已通过, 执行回调给外部 ==> allPassRunable()");
-            if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
-            if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
-            RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
-        } else {
 
-            // (toat 保留) 3.3.对读写做特殊处理
+            // (toat 保留) [避免空申请: 如果权限全部通过就不重复申请避免弹出权限框影响生命周期] (B4) 3.3.4对读写做特殊处理
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+
+                // 再次对needpermissions做一次判断, 看看是否只剩下读写权限
+                for (String permission : needPermissions) {
+                    if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                        deniedPermissions.put(permission, false);
+                    }
+                }
+
                 Log.v(TAG, getClass().getName() + " A0.14 (针对Android 10.0 的特殊处理) 做读写开关的判断");
                 boolean containsWrite = deniedPermissions.containsKey(Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 boolean containsRead = deniedPermissions.containsKey(Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -292,13 +295,13 @@ public abstract class RootMAActivity extends FragmentActivity {
 
                     boolean isPass = Environment.isExternalStorageManager(); // 大于Android 10.0的版本. 判断是否打开了[所有文件]开关
                     Log.v(TAG, getClass().getName() + " A0.14.2 (针对Android 10.0 的特殊处理) 此时检查读写的开关是否有打开(true: 打开): " + isPass);
-                    if (isPass) {// 打开了
+                    if (isPass) {// 打开了[所有文件]开关
                         Log.i(TAG, getClass().getName() + " A0.14.3 (针对Android 10.0 的特殊处理) 用户已经打开了读写开关, 执行回调给外部 ==> allPassRunable()");
                         if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
                         if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
                         RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
                         Log.i(TAG, getClass().getName() + " A0.14.4 (针对Android 10.0 的特殊处理) 就不再走下面权限的逻辑了");
-                    } else {// 没有打开
+                    } else {// 没有打开[所有文件]开关
                         if (permissActionForFragment != null) {// 回调给fragment
                             Log.v(TAG, getClass().getName() + " A0.14.4.1 (针对Android 10.0 的特殊处理) 用户没有打开读写开关, 执行 ==> deniedAction(false), 此时回调给Fragment做业务处理");
                             permissActionForFragment.onDenied(NOW_WRITE_READ, new ArrayList<>(deniedPermissions.keySet()));
@@ -312,6 +315,12 @@ public abstract class RootMAActivity extends FragmentActivity {
                 }
             }
 
+
+            Log.i(TAG, getClass().getName() + " A0.5 全部权限都已通过, 执行回调给外部 ==> allPassRunable()");
+            if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
+            if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
+            RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
+        } else {
 
             // (toat 保留) 3.4.再去判断其他权限
             for (Map.Entry<String, Boolean> entry : deniedPermissions.entrySet()) {
@@ -353,7 +362,6 @@ public abstract class RootMAActivity extends FragmentActivity {
             }
         }
     }
-    
 
     /**
      * // (toat 保留) 2.2024新权限用法: 发起权限申请(外部Fragment根据业务情况调用)
@@ -384,12 +392,55 @@ public abstract class RootMAActivity extends FragmentActivity {
             return;
         }
 
+        // (toat 保留) [避免空申请: 如果权限全部通过就不重复申请避免弹出权限框影响生命周期] (B2) 2.1.1.如果只剩大于10.0的权限没有申请了且用户上一次已经将状态切换为NOW_WRITE_READ, 就直接去申请
+        if (permissionType == NOW_WRITE_READ) {
+            Log.v(TAG, getClass().getName() + " A0.1.1 如果只剩大于10.0的权限没有申请了且用户上一次已经将状态切换为NOW_WRITE_READ, 就直接去申请");
+            openManageAllFilesAccessPermissionSettings();
+            return;
+        }
+
         // (toat 保留) 2.2.用于存储未授权的权限
         List<String> deniedPermissions = new ArrayList<>();
         // (toat 保留) 2.3.检查是否有未授权的权限
         for (String permission : needPermissions) {
             if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
                 deniedPermissions.add(permission);
+            }
+        }
+
+        // (toat 保留) [避免空申请: 如果权限全部通过就不重复申请避免弹出权限框影响生命周期] (B1) 2.3.1.对读写做特殊处理
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+
+            Log.v(TAG, getClass().getName() + " A0.14 (针对Android 10.0 的特殊处理) 做读写开关的判断");
+            boolean containsWrite = deniedPermissions.contains(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            boolean containsRead = deniedPermissions.contains(Manifest.permission.READ_EXTERNAL_STORAGE);
+
+            // 如果仅仅只有读写, 就走读写的逻辑
+            if ((deniedPermissions.size() == 1 && (containsWrite || containsRead)) || (deniedPermissions.size() == 2 && containsWrite && containsRead)) {
+
+                boolean isPass = Environment.isExternalStorageManager(); // 大于Android 10.0的版本. 判断是否打开了[所有文件]开关
+                Log.v(TAG, getClass().getName() + " A0.14.2 (针对Android 10.0 的特殊处理) 此时检查读写的开关是否有打开(true: 打开): " + isPass);
+                if (isPass) {// 打开了
+                    Log.i(TAG, getClass().getName() + " A0.14.3 (针对Android 10.0 的特殊处理) 用户已经打开了读写开关, 执行回调给外部 ==> allPassRunable()");
+                    if (permissActionForFragment != null) permissActionForFragment.onAllGranted(); // 执行fragment的回调
+                    if (permissActionForActivity != null) permissActionForActivity.onAllGranted(); // 执行activity的回调
+                    RootFrag.isReloadData = RootFrag.isTmpReload; // (toat 保留: 防止无限申请权限的操作) A3. 如果权限通过后, 全部还原
+                    Log.i(TAG, getClass().getName() + " A0.14.4 (针对Android 10.0 的特殊处理) 就不再走下面权限的逻辑了");
+                } else {// 没有打开
+                    if (permissActionForFragment != null) {// 回调给fragment
+                        Log.v(TAG, getClass().getName() + " A0.14.4.1 (针对Android 10.0 的特殊处理) 用户没有打开读写开关, 执行 ==> deniedAction(false), 此时回调给Fragment做业务处理");
+                        permissActionForFragment.onDenied(NOW_WRITE_READ, deniedPermissions);
+                    }
+                    if (permissActionForActivity != null) {// 回调给Activity
+                        Log.v(TAG, getClass().getName() + " A0.14.4.2 (针对Android 10.0 的特殊处理) 用户没有打开读写开关, 执行 ==> deniedAction(false), 此时回调给Activity应该弹窗提示用户了");
+                        permissActionForActivity.onDenied(NOW_WRITE_READ, deniedPermissions);
+                    }
+                }
+                return; // (toat 保留) 3.4.结束方法执行(一定要结束, 即如果识别到是大于Android 10.0的读写申请, 就不再往下判断其他权限, 直到这个读写权限处理完毕)
+            } else {// 如果集合中不仅仅只有读写权限, 那么就移除读写权限, 先去判断其他权限
+                // (toat 保留) ) [避免空申请: 如果权限全部通过就不重复申请避免弹出权限框影响生命周期] (B3) 2.3.2.如果不止一个权限, 那么就先把读写权限去掉, 去判断其他权限
+                deniedPermissions.remove(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                deniedPermissions.remove(Manifest.permission.READ_EXTERNAL_STORAGE);
             }
         }
 
@@ -660,7 +711,7 @@ public abstract class RootMAActivity extends FragmentActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        Lgg.t(TAG).vv("Method--> " + getClass().getSimpleName() + ":onPause()");
+        Lgg.t(TAG).ww("Method--> " + getClass().getSimpleName() + ":onPause()");
         if (EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().unregister(this);
         }
