@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.newhiber.newhiber.tools.layout.PercentRelativeLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -13,7 +13,7 @@
         android:alpha="0.5"
         android:background="@android:color/darker_gray" />
 
-    <com.newhiber.newhiber.tools.layout.PercentRelativeLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
@@ -24,7 +24,7 @@
         app:layout_marginTopPercent="5%h"
         app:layout_widthPercent="80%w">
 
-        <com.newhiber.newhiber.tools.layout.PercentRelativeLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:layout_heightPercent="80%h">
@@ -39,7 +39,7 @@
                 android:overScrollMode="never"
                 android:scrollbars="none">
 
-                <com.newhiber.newhiber.tools.layout.PercentRelativeLayout
+                <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
@@ -49,13 +49,13 @@
                         android:layout_height="wrap_content"
                         android:text="@string/ACTION_ERR"
                         android:textSize="16sp"
-                        android:textColor="@android:color/holo_red_dark"/>
+                        android:textColor="@android:color/holo_red_light"/>
 
-                </com.newhiber.newhiber.tools.layout.PercentRelativeLayout>
+                </RelativeLayout>
 
             </ScrollView>
 
-        </com.newhiber.newhiber.tools.layout.PercentRelativeLayout>
+        </RelativeLayout>
 
         <TextView
             android:id="@+id/tv_ok_action"
@@ -76,6 +76,6 @@
             android:layout_above="@id/tv_ok_action"
             android:background="@android:color/darker_gray" />
 
-    </com.newhiber.newhiber.tools.layout.PercentRelativeLayout>
+    </RelativeLayout>
 
-</com.newhiber.newhiber.tools.layout.PercentRelativeLayout>
+</RelativeLayout>

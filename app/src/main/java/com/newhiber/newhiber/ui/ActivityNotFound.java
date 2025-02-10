@@ -26,7 +26,7 @@ public class ActivityNotFound extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        setContentView(R.layout.activity_not_found);
+        setContentView(R.layout.activity_not_found2);
         // 设置描述信息
         tvErrAction = findViewById(R.id.tv_des_action);
         String errInfo = getIntent().getStringExtra(ERROR_INTENT);

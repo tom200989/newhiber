@@ -44,12 +44,12 @@ public class CrashHelper {
                     String des = String.format(acError, getTargetACAction(errTrace));
                     Lgg.t(Cons.TAG).ee("CrashHelper--> " + des);
                     // 记录日志
-                    recordCrash(des);
+                    // recordCrash(des);
                     // 显示Activity窗体
                     showErrWindow(context, des);
                 } else {
                     // 记录日志
-                    recordCrash(errTrace);
+                    // recordCrash(errTrace);
                     // 显示错误窗体
                     showErrWindow(context, errTrace);
                 }
@@ -115,7 +115,7 @@ public class CrashHelper {
      * @param des 错误信息
      */
     private void recordCrash(String des) {
-
+        
         // 1.获取SD根目录
         File sdDir = Environment.getExternalStorageDirectory();
         if (!sdDir.exists() || !sdDir.isDirectory()) {

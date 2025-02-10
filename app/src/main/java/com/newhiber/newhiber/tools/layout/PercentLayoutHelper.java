@@ -58,11 +58,12 @@ public class PercentLayoutHelper {
         wm.getDefaultDisplay().getMetrics(outMetrics);
         mWidthScreen = outMetrics.widthPixels;
         mHeightScreen = outMetrics.heightPixels;
+        
         if (mWidthScreen == 0) {
-            mWidthScreen = 1080;
+            mWidthScreen = 2944;
         }
         if (mHeightScreen == 0) {
-            mHeightScreen = 1920;
+            mHeightScreen = 1840;
         }
     }
 

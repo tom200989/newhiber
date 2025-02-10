@@ -22,6 +22,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.MessageQueue;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.ArrayMap;
@@ -30,6 +31,7 @@ import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -42,6 +44,7 @@ import com.newhiber.newhiber.bean.ApplyPermissionBean;
 import com.newhiber.newhiber.bean.GradientBean;
 import com.newhiber.newhiber.bean.RootProperty;
 import com.newhiber.newhiber.bean.SkipBean;
+import com.newhiber.newhiber.bean.StateBarType;
 import com.newhiber.newhiber.cons.Cons;
 import com.newhiber.newhiber.hiber.language.LangHelper;
 import com.newhiber.newhiber.impl.PermissionAction;
@@ -74,6 +77,7 @@ import androidx.annotation.FloatRange;
 import androidx.annotation.StringRes;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
@@ -109,6 +113,11 @@ public abstract class RootMAActivity extends FragmentActivity {
     public String TRACK = Cons.TRACK;
 
     /**
+     * 是否需要系统状态栏
+     */
+    private StateBarType statuBarType = StateBarType.NO;
+
+    /**
      * 状态栏颜色ID 如:R.color.xxx
      */
     private int colorStatusBar = R.color.colorHiberAccent;
@@ -128,6 +137,21 @@ public abstract class RootMAActivity extends FragmentActivity {
      */
     @FloatRange(from = 0, to = 1)
     private float statusbarAlpha = 1;
+
+    /**
+     * 常亮配置对象
+     */
+    private PowerManager.WakeLock wakeLock;
+
+    /**
+     * 是否屏幕常亮
+     */
+    private boolean isScreenAlwaysBright = false;
+
+    /**
+     * 亮度
+     */
+    private float brightness = 1.0f;
 
     /**
      * 布局ID 如:R.layout.xxx
@@ -514,8 +538,18 @@ public abstract class RootMAActivity extends FragmentActivity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // 前置操作)
+        // 前置操作
         beforeAllFirst();
+        // 1.获取初始化配置对象
+        rootProperty = initProperty();
+        if (rootProperty != null) {
+            // 2.分发配置
+            dispatherProperty(rootProperty);
+            // 检查状态栏类型
+            checkStatubarType();
+            // 屏幕常亮设置
+            keepScreenAlwaysBright();
+        }
         // (toat 保留): 1.2024新权限用法, 接收外部的权限申请
         ApplyPermissionBean apb = applyPermission();
         if (apb != null) {
@@ -527,14 +561,11 @@ public abstract class RootMAActivity extends FragmentActivity {
         // 0.检测action与category是否符合规范
         boolean isActionCategoryMatch = checkActionCategory();
         if (isActionCategoryMatch) {// 0.1.符合条件则正常执行
-
             if (checkStardard()) {// 0.2.standard配置符合
                 Lgg.t(TAG).vv("Method--> " + getClass().getSimpleName() + ":onCreate()");
-                // 1.获取初始化配置对象
-                rootProperty = initProperty();
+
                 if (rootProperty != null) {// 属性对象不为空
-                    // 2.分发配置
-                    dispatherProperty(rootProperty);
+
                     // 3.设置无标题栏(必须位于 super.onCreate(savedInstanceState) 之上)
                     if (isFullScreen) {
                         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -561,7 +592,7 @@ public abstract class RootMAActivity extends FragmentActivity {
                     }
 
                     // 5.填充视图
-                    setContentView(getHiberView(layoutId, gradientBean));
+                    setContentView(getHiberView(layoutId));
                     // 8.处理从其他组件传递过来的数据
                     handleIntentExtra(getIntent());
                     // 9.视图填充完毕
@@ -585,6 +616,29 @@ public abstract class RootMAActivity extends FragmentActivity {
             String err = getString(R.string.INIT_ERR);
             toast(err, 5000);
             Lgg.t(TAG).ee(err);
+        }
+    }
+
+    /**
+     * 检查状态栏类型
+     */
+    private void checkStatubarType() {
+        // 如果设定是自定义或者不需要状态栏
+        if (statuBarType == StateBarType.SELF || statuBarType == StateBarType.NO) {
+            // 取消主题自适应: 禁用系统窗口的自动调整，设置内容区域延伸到屏幕边缘
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            // 隐藏系統本身状态栏和导航栏（全屏）
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, // 
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN //
+            );
+
+            getWindow().getDecorView().setSystemUiVisibility(//
+                    View.SYSTEM_UI_FLAG_FULLSCREEN | //
+                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | //
+                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | //
+                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE | //
+                            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN //
+            );
         }
     }
 
@@ -659,9 +713,7 @@ public abstract class RootMAActivity extends FragmentActivity {
      * @param layoutId 布局ID
      * @return 复合布局
      */
-    private View getHiberView(int layoutId, GradientBean gradientBean) {
-        // 获取到一个自定义状态栏
-        View stausbarView = getStausbarView(gradientBean);
+    private View getHiberView(int layoutId) {
         // 生成顶级布局
         RelativeLayout hiberRelative = new RelativeLayout(this);
         RelativeLayout.LayoutParams vp = new RelativeLayout.LayoutParams(-1, -1);
@@ -671,13 +723,19 @@ public abstract class RootMAActivity extends FragmentActivity {
         RelativeLayout.LayoutParams vlp = new RelativeLayout.LayoutParams(-1, -1);
         inflate.setLayoutParams(vlp);
         hiberRelative.addView(inflate);
-        // 添加标题栏
-        if (stausbarView != null) hiberRelative.addView(stausbarView);
-        // 非沉浸式 - 重新排序位置 (让业务视图 below Statubar)
-        if (stausbarView != null & !immerse) {
-            ((RelativeLayout.LayoutParams) inflate.getLayoutParams()).addRule(RelativeLayout.BELOW, stausbarView.getId());
-            inflate.setLayoutParams(vlp);
+
+        // 如果开发人员需要状态栏
+        if (statuBarType == StateBarType.SELF) {
+            // 生成一个自定义状态栏
+            View stausbarView = getStausbarView(gradientBean);
+            if (stausbarView != null) hiberRelative.addView(stausbarView);
+            // 非沉浸式 - 让业务视图 below Statubar
+            if (stausbarView != null & !immerse) {
+                ((RelativeLayout.LayoutParams) inflate.getLayoutParams()).addRule(RelativeLayout.BELOW, stausbarView.getId());
+                inflate.setLayoutParams(vlp);
+            }
         }
+
         // 新建吐司文本
         tvToast = new TextView(this);
         RelativeLayout.LayoutParams rlp = new RelativeLayout.LayoutParams(-2, -2);
@@ -717,10 +775,15 @@ public abstract class RootMAActivity extends FragmentActivity {
         }
     }
 
+    @SuppressLint("Wakelock")
     @Override
     protected void onDestroy() {
         super.onDestroy();
         clearEvents();
+        // 释放屏幕常亮
+        if (wakeLock != null) {
+            wakeLock.release();
+        }
     }
 
     /**
@@ -1016,9 +1079,12 @@ public abstract class RootMAActivity extends FragmentActivity {
         Lgg.t(TAG).vv(rootProperty.toString());
         isFullScreen = rootProperty.isFullScreen();
         colorStatusBar = rootProperty.getColorStatusBar() <= 0 ? colorStatusBar : rootProperty.getColorStatusBar();
+        statuBarType = rootProperty.getStateBarType();
         gradientBean = rootProperty.getGradientStatusBar();
         immerse = rootProperty.isStatusbarImmerse();
         statusbarAlpha = rootProperty.getStatusbarAlpha();
+        isScreenAlwaysBright = rootProperty.isScreenAlwaysBright();
+        brightness = rootProperty.getBrightness() <= 0 ? 0.1f : rootProperty.getBrightness();
         layoutId = rootProperty.getLayoutId() <= 0 ? layoutId : rootProperty.getLayoutId();
         TAG = TextUtils.isEmpty(rootProperty.getTAG()) ? TAG : rootProperty.getTAG();
         isSaveInstanceState = rootProperty.isSaveInstanceState();
@@ -1737,6 +1803,40 @@ public abstract class RootMAActivity extends FragmentActivity {
             imm.showSoftInputFromInputMethod(getWindow().getDecorView().getWindowToken(), 0);
         }
     }
+
+    /**
+     * 保持屏幕常亮
+     */
+    @SuppressLint("WakelockTimeout")
+    private void keepScreenAlwaysBright() {
+        
+        if (rootProperty != null && isScreenAlwaysBright) {
+            if (brightness < 0) {
+                brightness = 0.1f;
+            } else if (brightness > 1) {
+                brightness = 1f;
+            }
+
+            PowerManager.WakeLock wakeLock;
+
+            // 设置屏幕常亮（适用于当前 Activity）
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+            // 设置屏幕亮度（适用于当前 Activity）
+            WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
+            layoutParams.screenBrightness = brightness; // 0.0 到 1.0 之间
+            getWindow().setAttributes(layoutParams);
+
+            // 获取 PowerManager
+            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MyApp::WakeLockTag");
+
+            // 获取 WakeLock，保持 CPU 运行，即使屏幕关闭
+            wakeLock.acquire();
+            this.wakeLock = wakeLock;
+        }
+    }
+
 
     /* -------------------------------------------- abstract -------------------------------------------- */
 

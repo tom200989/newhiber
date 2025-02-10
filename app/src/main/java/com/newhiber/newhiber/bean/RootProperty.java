@@ -17,6 +17,14 @@ public class RootProperty implements Serializable {
     private boolean isFullScreen;
 
     /**
+     * 状态栏类型
+     * DEFAULT:默认状态栏
+     * SELF:自定义状态栏
+     * NO:无状态栏
+     */
+    private StateBarType stateBarType;
+
+    /**
      * 状态栏颜色 如:R.color.xxx
      */
     private int colorStatusBar;
@@ -35,6 +43,16 @@ public class RootProperty implements Serializable {
      * 状态栏透明度
      */
     private float statusbarAlpha = 1;
+
+    /**
+     * 是否屏幕常亮
+     */
+    private boolean isScreenAlwaysBright=false;
+
+    /**
+     * 亮度
+     */
+    private float brightness = 1.0f;
 
     /**
      * 工程默认目录名 如:aaa
@@ -89,6 +107,24 @@ public class RootProperty implements Serializable {
         this.packageName = packageName;
     }
 
+    public boolean isScreenAlwaysBright() {
+        return isScreenAlwaysBright;
+    }
+
+    public RootProperty setScreenAlwaysBright(boolean screenAlwaysBright) {
+        isScreenAlwaysBright = screenAlwaysBright;
+        return this;
+    }
+
+    public float getBrightness() {
+        return brightness;
+    }
+
+    public RootProperty setBrightness(float brightness) {
+        this.brightness = brightness;
+        return this;
+    }
+
     /**
      * 当前是否全屏
      *
@@ -105,6 +141,24 @@ public class RootProperty implements Serializable {
      */
     public void setFullScreen(boolean fullScreen) {
         isFullScreen = fullScreen;
+    }
+
+    public StateBarType getStateBarType() {
+        return stateBarType;
+    }
+
+    public RootProperty setStateBarType(StateBarType stateBarType) {
+        this.stateBarType = stateBarType;
+        return this;
+    }
+
+    public GradientBean getGradientBean() {
+        return gradientBean;
+    }
+
+    public RootProperty setGradientBean(GradientBean gradientBean) {
+        this.gradientBean = gradientBean;
+        return this;
     }
 
     /**
@@ -333,10 +387,12 @@ public class RootProperty implements Serializable {
     public String toString() {
         final StringBuffer sb = new StringBuffer("RootProperty{");
         sb.append("\n").append("\t").append("isFullScreen =").append(isFullScreen);
+        sb.append("\n").append("\t").append("stateBarType =").append(stateBarType);
         sb.append("\n").append("\t").append("colorStatusBar =").append(colorStatusBar);
         sb.append("\n").append("\t").append("gradientBean =").append(gradientBean);
         sb.append("\n").append("\t").append("immerse =").append(statusbarImmerse);
         sb.append("\n").append("\t").append("statusbarAlpha =").append(statusbarAlpha);
+        sb.append("\n").append("\t").append("isScreenAlwaysBright =").append(isScreenAlwaysBright);
         sb.append("\n").append("\t").append("projectDirName ='").append(projectDirName).append('\'');
         sb.append("\n").append("\t").append("permissionCode =").append(permissionCode);
         sb.append("\n").append("\t").append("permissions =").append(permissions == null ? "null" : Arrays.asList(permissions).toString());
